@@ -5,6 +5,12 @@ from pandas import to_datetime
 from pandas.plotting import autocorrelation_plot
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from sklearn.metrics import mean_squared_error
+from math import sqrt
+
 
 
 def drop_tavg(data):
@@ -95,6 +101,21 @@ def preprocess_data(data):
 
     return data
 
+
+def make_training_set(data, city, pollen, output_csv):
+    pollen = pd.read_csv(pollen)
+    data_city = data[city]
+    data_city.drop("Unnamed: 0", axis="columns", inplace = True)
+    #data_city.to_csv("Data_Beograd.csv", index=False)
+    #pollen_train = pd.read_csv("pollen_train.csv")
+    pollen_city = pollen[pollen.location == city]
+    pollen_city = pollen_city[['date', 'AMBROSIA']]
+    #pollen_city.to_csv("Polen_Beograd.csv", index=False)
+    pollen_city = pd.DataFrame(pollen_city)
+    temp = pd.merge(data_city, pollen_city, on='date', how='left')
+    temp['AMBROSIA'].fillna(0, inplace=True)
+    temp.to_csv(output_csv, index=False)
+
 pd.set_option('display.max_columns', None)
 data = pd.read_csv("weather_data.csv")
 
@@ -125,7 +146,76 @@ all_data['ПОЖАРЕВАЦ'] = data_pozarevac
 all_data['СУБОТИЦА'] = data_subotica
 all_data['ВРШАЦ'] = data_vrsac
 
+
+for key, value in all_data.items():
+    #print(key)
+    all_data[key] = preprocess_data(value)
+
+
 for key, value in all_data.items():
     print(key)
     all_data[key] = preprocess_data(value)
+
+
+#training_set = pd.read_csv('pollen_train.csv')
+#training_set = training_set[['location', 'date', 'AMBROSIA']]
+
+
+make_training_set(all_data, 'БЕОГРАД - НОВИ БЕОГРАД', 'pollen_train.csv', 'train_bg.csv')
+
+#NEURALNA MREZA LSTM
+"""
+quantitative = ['tavg', 'tmin', 'tmax', 'prcp', 'wdir', 'wspd', 'wpgt', 'pres']
+lstm_data = data[quantitative]
+window_size = 10  # Number of past days to consider
+forecast_horizon = 3  # Number of future days to predict
+
+scaler = MinMaxScaler()
+scaled_data = scaler.fit_transform(all_data['БЕОГРАД - НОВИ БЕОГРАД'][quantitative])
+
+X, y = [], []
+
+for i in range(len(scaled_data) - window_size - forecast_horizon + 1):
+    X.append(scaled_data[i:i+window_size])
+    y.append(scaled_data[i+window_size:i+window_size+forecast_horizon])
+
+X = np.array(X)
+y = np.array(y)
+X_test = pd.read_csv('pollen_test.csv')
+y_test = pd.read_csv('pollen_test.csv')
+y_test = y_test.AMBROSIA
+
+# Build the LSTM model
+model = Sequential()
+
+model.add(LSTM(50, activation='relu', return_sequences=True, input_shape=(window_size, X.shape[2])))
+model.add(LSTM(50, activation='relu', return_sequences=True))
+model.add(LSTM(50, activation='relu'))
+model.add(Dense(forecast_horizon))
+
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# Train the model
+model.fit(X, y, epochs=50, batch_size=32, validation_data=(X_test, y_test), verbose=2)
+
+# Make predictions on the test data
+y_pred = model.predict(X_test)
+
+# Inverse transform the scaled data to get actual values
+y_pred = scaler.inverse_transform(y_pred)
+y_test = scaler.inverse_transform(y_test)
+
+# Calculate RMSE to evaluate the model's performance
+rmse = sqrt(mean_squared_error(y_test, y_pred))
+print(f"Root Mean Squared Error (RMSE): {rmse}")
+
+# Plot the actual and predicted values
+plt.plot(y_test, label='Actual')
+plt.plot(y_pred, label='Predicted', color='red')
+plt.xlabel('Time')
+plt.ylabel('Ragweed Concentration')
+plt.title('Ragweed Concentration Prediction')
+plt.legend()
+plt.show()
+"""
 
