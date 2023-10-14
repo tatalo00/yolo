@@ -12,6 +12,7 @@ from sklearn.metrics import mean_squared_error
 from math import sqrt
 
 
+
 def drop_tavg(data):
     indices = data[data["tavg"].isna()].index
     data = data.drop(indices)
@@ -100,6 +101,7 @@ def preprocess_data(data):
 
     return data
 
+
 def make_training_set(data, city, pollen, output_csv):
     pollen = pd.read_csv(pollen)
     data_city = data[city]
@@ -144,8 +146,14 @@ all_data['ПОЖАРЕВАЦ'] = data_pozarevac
 all_data['СУБОТИЦА'] = data_subotica
 all_data['ВРШАЦ'] = data_vrsac
 
+
 for key, value in all_data.items():
     #print(key)
+    all_data[key] = preprocess_data(value)
+
+
+for key, value in all_data.items():
+    print(key)
     all_data[key] = preprocess_data(value)
 
 
@@ -154,11 +162,6 @@ for key, value in all_data.items():
 
 
 make_training_set(all_data, 'БЕОГРАД - НОВИ БЕОГРАД', 'pollen_train.csv', 'train_bg.csv')
-
-
-
-
-
 
 #NEURALNA MREZA LSTM
 """
@@ -215,3 +218,4 @@ plt.title('Ragweed Concentration Prediction')
 plt.legend()
 plt.show()
 """
+
