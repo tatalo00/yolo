@@ -6,10 +6,13 @@ from pandas.plotting import autocorrelation_plot
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import MinMaxScaler
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
+#from tensorflow.keras.models import Sequential
+#from tensorflow.keras.layers import LSTM, Dense, Dropout
 from sklearn.metrics import mean_squared_error
 from math import sqrt
+from statsmodels.tsa.seasonal import seasonal_decompose
+import warnings
+warnings.filterwarnings("ignore")
 
 
 
@@ -152,16 +155,55 @@ for key, value in all_data.items():
     all_data[key] = preprocess_data(value)
 
 
-for key, value in all_data.items():
-    print(key)
-    all_data[key] = preprocess_data(value)
-
 
 #training_set = pd.read_csv('pollen_train.csv')
 #training_set = training_set[['location', 'date', 'AMBROSIA']]
 
 
 make_training_set(all_data, 'БЕОГРАД - НОВИ БЕОГРАД', 'pollen_train.csv', 'train_bg.csv')
+train_bg = pd.read_csv('train_bg.csv')
+index = pd.DatetimeIndex(train_bg.date)
+to_datetime(train_bg.date)
+#train_bg.date.resample()
+ambrosia_bg = train_bg.AMBROSIA
+#ambrosia_bg = np.array(ambrosia_bg)
+ambrosia_bg = pd.DataFrame(ambrosia_bg)
+ambrosia_bg.set_index(train_bg.date, inplace=True)
+ambrosia_bg = ambrosia_bg.resample('D').sum().fillna(0)
+#ambrosia_bg = pd.Series(ambrosia_bg, index=index)
+#ambrosia_bg.resample()
+print(ambrosia_bg)
+#train_bg = pd.DataFrame(ambrosia_bg, index=train_bg.date)
+#train_bg.index.freq = 'D'
+#print(train_bg)
+
+#plt.figure()
+#plt.plot(train_bg.date[-500:-300], train_bg.AMBROSIA[-500:-300])
+#plt.show()
+
+
+plt.figure()
+results = seasonal_decompose(train_bg, model='additive') # Try using model='additive'
+results.plot()
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #NEURALNA MREZA LSTM
 """
